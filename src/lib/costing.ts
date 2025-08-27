@@ -13,13 +13,12 @@ export async function getAvgCost(
 }
 
 export async function updateAvgOnPurchase(
-  tx: Prisma.TransactionClient,
+  tx: Prisma.TransactionClient, 
   productId: string,
   warehouseId: string,
   purchaseQty: number,
   unitCost: number
 ) {
-  // qty BEFORE this purchase
   const ps = await tx.productStock.findUnique({
     where: { productId_warehouseId: { productId, warehouseId } },
   });
