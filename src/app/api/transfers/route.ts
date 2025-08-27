@@ -23,22 +23,26 @@ async function getUserId() {
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
+
     if (body.fromWarehouseId === body.toWarehouseId) {
       return new Response("fromWarehouseId and toWarehouseId cannot be same", { status: 400 });
     }
+
     const userId = await getUserId();
 
     await prisma.$transaction(async (tx) => {
       // check available stock at source
       const ps = await tx.productStock.findUnique({
-        where: { productId_warehouseId: { productId: body.productId, warehouseId: body.fromWarehouseId } },
+        where: {
+          productId_warehouseId: {
+            productId: body.productId,
+            warehouseId: body.fromWarehouseId,
+          },
+        },
       });
       const onHand = ps ? Number(ps.qtyOnHand) : 0;
       if (onHand < body.qty) {
-        throw new Response(
-          `INSUFFICIENT_STOCK at source (have ${onHand}, need ${body.qty})`,
-          { status: 409 }
-        ) as unknown as Error;
+        throw new Error(`INSUFFICIENT_STOCK: have ${onHand}, need ${body.qty}`);
       }
 
       // OUT from source
@@ -52,8 +56,16 @@ export async function POST(req: NextRequest) {
         },
       });
       await tx.productStock.update({
-        where: { productId_warehouseId: { productId: body.productId, warehouseId: body.fromWarehouseId } },
-        data: { qtyOnHand: { decrement: new Prisma.Decimal(body.qty) }, updatedAt: new Date() },
+        where: {
+          productId_warehouseId: {
+            productId: body.productId,
+            warehouseId: body.fromWarehouseId,
+          },
+        },
+        data: {
+          qtyOnHand: { decrement: new Prisma.Decimal(body.qty) },
+          updatedAt: new Date(),
+        },
       });
 
       // IN to destination
@@ -67,16 +79,32 @@ export async function POST(req: NextRequest) {
         },
       });
       await tx.productStock.upsert({
-        where: { productId_warehouseId: { productId: body.productId, warehouseId: body.toWarehouseId } },
-        create: { productId: body.productId, warehouseId: body.toWarehouseId, qtyOnHand: new Prisma.Decimal(body.qty) },
-        update: { qtyOnHand: { increment: new Prisma.Decimal(body.qty) }, updatedAt: new Date() },
+        where: {
+          productId_warehouseId: {
+            productId: body.productId,
+            warehouseId: body.toWarehouseId,
+          },
+        },
+        create: {
+          productId: body.productId,
+          warehouseId: body.toWarehouseId,
+          qtyOnHand: new Prisma.Decimal(body.qty),
+        },
+        update: {
+          qtyOnHand: { increment: new Prisma.Decimal(body.qty) },
+          updatedAt: new Date(),
+        },
       });
     });
 
     return Response.json({ ok: true }, { status: 201 });
   } catch (e: unknown) {
-    if (e instanceof Response) return e;
-    if (e instanceof z.ZodError) return new Response(JSON.stringify(e.flatten()), { status: 400 });
+    if (e instanceof z.ZodError) {
+      return new Response(JSON.stringify(e.flatten()), { status: 400 });
+    }
+    if (e instanceof Error && e.message.startsWith("INSUFFICIENT_STOCK")) {
+      return new Response(e.message, { status: 409 });
+    }
     console.error(e);
     return new Response("Server error", { status: 500 });
   }
