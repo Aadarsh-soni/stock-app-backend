@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { requireAuth } from "@/lib/auth";
 
 const AdjustmentDTO = z.object({
   productId: z.string().uuid(),
@@ -10,21 +11,18 @@ const AdjustmentDTO = z.object({
   reason: z.string().min(1),
 });
 
-async function getUserId() {
-  const email = "admin@example.com";
-  let u = await prisma.user.findUnique({ where: { email } });
-  if (!u) {
-    u = await prisma.user.create({
-      data: { email, name: "Admin", role: "ADMIN", password: "changeme" },
-    });
-  }
-  return u.id;
+// Get authenticated user ID
+async function getUserId(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof Response) return user; // Return error response
+  return user.id;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = AdjustmentDTO.parse(await req.json());
-    const userId = await getUserId();
+    const userId = await getUserId(req);
+    if (userId instanceof Response) return userId; // Return error response
 
     await prisma.$transaction(async (tx) => {
       // If negative, ensure we don't go below zero (optional business rule)

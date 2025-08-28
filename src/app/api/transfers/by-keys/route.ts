@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { requireAuth } from "@/lib/auth";
 
 const Body = z.object({
   sku: z.string().min(1),
@@ -10,21 +11,19 @@ const Body = z.object({
   qty: z.number().positive(),
 });
 
-async function getUserId() {
-  const email = "admin@example.com";
-  const u = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, name: "Admin", role: "ADMIN", password: "changeme" },
-  });
-  return u.id;
+// Get authenticated user ID
+async function getUserId(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof Response) return user; // Return error response
+  return user.id;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
     if (body.fromCode === body.toCode) return new Response("fromCode and toCode cannot be same", { status: 400 });
-    const userId = await getUserId();
+    const userId = await getUserId(req);
+    if (userId instanceof Response) return userId; // Return error response
 
     await prisma.$transaction(async (tx) => {
       const product = await tx.product.findUnique({ where: { sku: body.sku } });

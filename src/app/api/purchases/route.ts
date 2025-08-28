@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { updateAvgOnPurchase } from "@/lib/costing";
+import { requireAuth } from "@/lib/auth";
 
 // --- Zod DTO ---
 const PurchaseItemDTO = z.object({
@@ -20,22 +21,18 @@ const PurchaseDTO = z.object({
   items: z.array(PurchaseItemDTO).min(1),
 });
 
-// replace with your real auth later; for now fake an admin ID
-async function getUserId() {
-    const email = "admin@example.com";
-    let u = await prisma.user.findUnique({ where: { email } });
-    if (!u) {
-      u = await prisma.user.create({
-        data: { email, name: "Admin", role: "ADMIN", password: "changeme" },
-      });
-    }
-    return u.id;
-  }
+// Get authenticated user ID
+async function getUserId(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof Response) return user; // Return error response
+  return user.id;
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = PurchaseDTO.parse(await req.json());
-    const userId = await getUserId();
+    const userId = await getUserId(req);
+    if (userId instanceof Response) return userId; // Return error response
     if (!userId) return new Response("No admin user", { status: 400 });
 
     const result = await prisma.$transaction(async (tx) => {

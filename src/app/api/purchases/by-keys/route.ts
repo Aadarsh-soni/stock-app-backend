@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { requireAuth } from "@/lib/auth";
 
 const Body = z.object({
   supplierName: z.string().min(1),
@@ -15,15 +16,18 @@ const Body = z.object({
   })).min(1),
 });
 
-async function getUserId() {
-  const u = await prisma.user.findFirst({ where: { email: "admin@example.com" } });
-  return u?.id ?? "";
+// Get authenticated user ID
+async function getUserId(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof Response) return user; // Return error response
+  return user.id;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
-    const userId = await getUserId();
+    const userId = await getUserId(req);
+    if (userId instanceof Response) return userId; // Return error response
     if (!userId) return new Response("No admin user", { status: 400 });
 
     const supplier = await prisma.supplier.findFirst({ where: { name: body.supplierName } });

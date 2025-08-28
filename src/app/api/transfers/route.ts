@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { requireAuth } from "@/lib/auth";
 
 const Body = z.object({
   productId: z.string().uuid(),
@@ -10,14 +11,11 @@ const Body = z.object({
   qty: z.number().positive(),
 });
 
-async function getUserId() {
-  const email = "admin@example.com";
-  const u = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: { email, name: "Admin", role: "ADMIN", password: "changeme" },
-  });
-  return u.id;
+// Get authenticated user ID
+async function getUserId(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof Response) return user; // Return error response
+  return user.id;
 }
 
 export async function POST(req: NextRequest) {
@@ -28,7 +26,8 @@ export async function POST(req: NextRequest) {
       return new Response("fromWarehouseId and toWarehouseId cannot be same", { status: 400 });
     }
 
-    const userId = await getUserId();
+    const userId = await getUserId(req);
+    if (userId instanceof Response) return userId; // Return error response
 
     await prisma.$transaction(async (tx) => {
       // check available stock at source
