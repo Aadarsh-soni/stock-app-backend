@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
           updatedAt: new Date(),
         },
       });
-    });
+    }); 
 
     return Response.json({ ok: true }, { status: 201 });
   } catch (e: unknown) {
