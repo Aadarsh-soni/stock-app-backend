@@ -1,37 +1,39 @@
+// src/lib/cors.ts
+import { NextRequest } from "next/server";
 
-import { NextRequest, NextResponse } from "next/server";
+const ALLOW_HEADERS =
+  "Origin, Content-Type, Accept, Authorization, X-Requested-With";
 
-const ALLOWED = (process.env.CORS_ORIGINS || "")
-  .split(",")
-  .map(s => s.trim())
-  .filter(Boolean);
-
-// include localhost ports you use during dev
-const DEFAULTS = ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"];
-
-function pickOrigin(req: NextRequest) {
-  const origin = req.headers.get("origin") || "";
-  if ([...ALLOWED, ...DEFAULTS].includes(origin)) return origin;
-  return ""; // disallow unknown origins
+function allowedOrigins(): string[] {
+  const v = process.env.CORS_ORIGINS?.split(",").map(s => s.trim()).filter(Boolean) || [];
+  return v;
 }
 
-export function corsHeaders(req: NextRequest) {
-  const origin = pickOrigin(req);
+function pickOrigin(req: NextRequest): string {
+  const origin = req.headers.get("origin") || "";
+  const allow = allowedOrigins();
+  if (allow.length === 0) return "*";
+  if (allow.includes(origin)) return origin;       // echo allowed origin
+  return allow[0];                                 // fall back to first allowed
+}
+
+export function corsHeaders(req: NextRequest): Headers {
   const h = new Headers();
-  if (origin) h.set("Access-Control-Allow-Origin", origin);
-  // Allow cookies across origins
+  h.set("Access-Control-Allow-Origin", pickOrigin(req));
+  h.set("Vary", "Origin");
   h.set("Access-Control-Allow-Credentials", "true");
-  h.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   h.set("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+  h.set("Access-Control-Allow-Headers", ALLOW_HEADERS);
   return h;
 }
 
-export function corsPreflight(req: NextRequest) {
-  return new Response(null, { status: 204, headers: corsHeaders(req) });
+export function okJson(req: NextRequest, data: unknown, init: ResponseInit = {}) {
+  const headers = new Headers(init.headers);
+  corsHeaders(req).forEach((v, k) => headers.set(k, v));
+  headers.set("Content-Type", "application/json");
+  return new Response(JSON.stringify(data), { ...init, headers });
 }
 
-export function withCors(req: NextRequest, res: NextResponse) {
-  const h = corsHeaders(req);
-  h.forEach((v, k) => res.headers.set(k, v));
-  return res;
+export function noContent(req: NextRequest) {
+  return new Response(null, { status: 204, headers: corsHeaders(req) });
 }
