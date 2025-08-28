@@ -6,7 +6,7 @@ import crypto from "crypto";
 
 /** ====== ENV / CONSTANTS ====== */
 export const AUTH_COOKIE_NAME =
-  process.env.AUTH_COOKIE_NAME || "sbm_auth";
+  process.env.AUTH_COOKIE_NAME || "session";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "dev_only_change_this_secret";
@@ -98,7 +98,7 @@ export function setAuthCookie(headers: Headers, token: string) {
     "Set-Cookie",
     serializeCookie(AUTH_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7, // 7 days
@@ -149,7 +149,17 @@ export async function requireAuth(req: NextRequest) {
  * Returns `null` if unauthenticated, or the user object if authenticated.
  */
 export async function getAuthUser(req: NextRequest) {
-  const resOrUser = await requireAuth(req);
-  if (resOrUser instanceof Response) return null;
-  return resOrUser;
+  const token = req.cookies.get(AUTH_COOKIE_NAME)?.value;
+  if (!token) return null;
+
+  const payload = verifyJWT(token);
+  if (!payload?.sub) return null;
+
+  // Load minimal user fields (adjust as needed)
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { id: true, email: true, name: true, role: true },
+  });
+
+  return user; // { id, email, name, role } or null
 }

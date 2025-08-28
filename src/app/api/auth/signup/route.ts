@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { hash } from "@/lib/hash"; // your bcrypt helper
+import { hashPassword } from "@/lib/auth";
 import { okJson, noContent } from "@/lib/cors";
 
 const Body = z.object({
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     const exists = await prisma.user.findUnique({ where: { email: body.email } });
     if (exists) return okJson(req, { error: "EMAIL_TAKEN" }, { status: 409 });
 
-    const pwd = await hash(body.password);
+    const pwd = await hashPassword(body.password);
     const u = await prisma.user.create({
       data: { email: body.email, name: body.name, password: pwd, role: "STAFF" }
     });
