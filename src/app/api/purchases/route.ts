@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { updateAvgOnPurchase } from "@/lib/costing";
-import { requireAuth } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const PurchaseItemDTO = z.object({
   productId: z.string().uuid(),
@@ -23,9 +23,7 @@ const PurchaseDTO = z.object({
 
 // Allow ADMIN & STAFF
 async function getUserId(req: NextRequest) {
-  const user = await requireAuth(req, { roles: ["ADMIN", "STAFF"] });
-  if (user instanceof Response) return user;
-  return user.id;
+  return (await getAuthUser(req))?.id;
 }
 
 export async function POST(req: NextRequest) {
@@ -33,7 +31,6 @@ export async function POST(req: NextRequest) {
     const body = PurchaseDTO.parse(await req.json());
 
     const uid = await getUserId(req);
-    if (uid instanceof Response) return uid;
     if (!uid) return new Response("Unauthorized", { status: 401 });
 
     const result = await prisma.$transaction(async (tx) => {
@@ -74,7 +71,7 @@ export async function POST(req: NextRequest) {
 
         await tx.productStock.upsert({
           where: {
-            productId_warehouseId: {
+            productId_warehouseId: {  
               productId: it.productId,
               warehouseId: it.warehouseId,
             },

@@ -1,9 +1,15 @@
 // src/app/api/auth/me/route.ts
 import { NextRequest } from "next/server";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const me = await getAuthUser(req);
-  if (!me) return new Response("Unauthorized", { status: 401 });
-  return Response.json({ user: me });
+  const resOrUser = await requireAuth(req);
+  if (resOrUser instanceof Response) {
+    // Not logged in — return null so frontend can handle it gracefully
+    return new Response(JSON.stringify({ user: null }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  return Response.json({ user: resOrUser });
 }

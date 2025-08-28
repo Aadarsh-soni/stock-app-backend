@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
-import { requireAuth } from "@/lib/auth";
+  import { getAuthUser } from "@/lib/auth";
 
 // --- Zod DTO ---
 const Body = z.object({
@@ -23,16 +23,13 @@ const Body = z.object({
 
 // Resolve authenticated user
 async function getUserId(req: NextRequest) {
-  const user = await requireAuth(req, { roles: ["ADMIN", "STAFF"] });
-  if (user instanceof Response) return user;
-  return user.id;
+  return (await getAuthUser(req))?.id;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
     const userId = await getUserId(req);
-    if (userId instanceof Response) return userId;
     if (!userId) return new Response("Unauthorized", { status: 401 });
 
     // Find supplier
