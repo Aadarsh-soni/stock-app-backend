@@ -1,0 +1,508 @@
+{
+  "info": {
+    "name": "Stock Management API Collection Cursor",
+    "description": "Complete API collection for Stock Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "User Signup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/signup",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "User Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "User Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sample Product\",\n  \"sku\": \"PROD001\",\n  \"barcode\": \"1234567890123\",\n  \"unit\": \"PCS\",\n  \"cost\": 10.50,\n  \"price\": 15.00,\n  \"reorderLevel\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Warehouses",
+      "item": [
+        {
+          "name": "Get All Warehouses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouses"]
+            }
+          }
+        },
+        {
+          "name": "Create Warehouse",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Main Warehouse\",\n  \"code\": \"WH001\",\n  \"address\": \"123 Main Street, City, State 12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/warehouses",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouses"]
+            }
+          }
+        },
+        {
+          "name": "Get Warehouse by Keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/by-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouses", "by-keys"]
+            }
+          }
+        },
+        {
+          "name": "Create Warehouse by Keys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Secondary Warehouse\",\n  \"code\": \"WH002\",\n  \"address\": \"456 Second Street, City, State 12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/warehouses/new",
+              "host": ["{{baseUrl}}"],
+              "path": ["warehouses", "new"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "Get All Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["suppliers"]
+            }
+          }
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"ABC Suppliers\",\n  \"phone\": \"+1234567890\",\n  \"gstin\": \"GST123456789\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/suppliers",
+              "host": ["{{baseUrl}}"],
+              "path": ["suppliers"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Purchases",
+      "item": [
+        {
+          "name": "Create Purchase",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierId\": \"supplier-uuid-here\",\n  \"docDate\": \"2025-01-15\",\n  \"invoiceNo\": \"INV-2025-001\",\n  \"notes\": \"Sample purchase order\",\n  \"items\": [\n    {\n      \"productId\": \"product-uuid-here\",\n      \"warehouseId\": \"warehouse-uuid-here\",\n      \"qty\": 100,\n      \"unitCost\": 10.50\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/purchases",
+              "host": ["{{baseUrl}}"],
+              "path": ["purchases"]
+            }
+          }
+        },
+        {
+          "name": "Create Purchase by Keys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"supplierName\": \"ABC Suppliers\",\n  \"docDate\": \"2025-01-15\",\n  \"invoiceNo\": \"INV-2025-002\",\n  \"items\": [\n    {\n      \"sku\": \"PROD001\",\n      \"warehouseCode\": \"WH001\",\n      \"qty\": 50,\n      \"unitCost\": 12.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/purchases/by-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["purchases", "by-keys"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "Create Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"customer-uuid-here\",\n  \"docDate\": \"2025-01-15\",\n  \"billNo\": \"BILL-2025-001\",\n  \"items\": [\n    {\n      \"productId\": \"product-uuid-here\",\n      \"warehouseId\": \"warehouse-uuid-here\",\n      \"qty\": 10,\n      \"unitPrice\": 15.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales"]
+            }
+          }
+        },
+        {
+          "name": "Get Sales List",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/sales/list",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales", "list"]
+            }
+          }
+        },
+        {
+          "name": "Create Sale by Keys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"John Customer\",\n  \"docDate\": \"2025-01-15\",\n  \"billNo\": \"BILL-2025-002\",\n  \"items\": [\n    {\n      \"sku\": \"PROD001\",\n      \"warehouseCode\": \"WH001\",\n      \"qty\": 5,\n      \"unitPrice\": 18.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sales/by-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["sales", "by-keys"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transfers",
+      "item": [
+        {
+          "name": "Create Transfer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"product-uuid-here\",\n  \"fromWarehouseId\": \"warehouse-uuid-here\",\n  \"toWarehouseId\": \"warehouse-uuid-here\",\n  \"qty\": 25\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers"]
+            }
+          }
+        },
+        {
+          "name": "Create Transfer by Keys",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"PROD001\",\n  \"fromCode\": \"WH001\",\n  \"toCode\": \"WH002\",\n  \"qty\": 15\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers/by-keys",
+              "host": ["{{baseUrl}}"],
+              "path": ["transfers", "by-keys"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Adjustments",
+      "item": [
+        {
+          "name": "Create Stock Adjustment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"product-uuid-here\",\n  \"warehouseId\": \"warehouse-uuid-here\",\n  \"qty\": 5,\n  \"reason\": \"Stock correction due to counting error\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/adjustments",
+              "host": ["{{baseUrl}}"],
+              "path": ["adjustments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock",
+      "item": [
+        {
+          "name": "Get Stock Levels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["stock"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Stock Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/stock",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "stock"]
+            }
+          }
+        },
+        {
+          "name": "COGS Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/cogs",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "cogs"]
+            }
+          }
+        },
+        {
+          "name": "Valuation Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/valuation",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "valuation"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Development",
+      "item": [
+        {
+          "name": "Bootstrap Data",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dev/bootstrap",
+              "host": ["{{baseUrl}}"],
+              "path": ["dev", "bootstrap"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
