@@ -4,22 +4,27 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { requireAuth } from "@/lib/auth";
 
+// --- Zod DTO ---
 const Body = z.object({
   supplierName: z.string().min(1),
-  docDate: z.string(),
+  docDate: z.string(), // e.g. "2025-08-26"
   invoiceNo: z.string().min(1),
-  items: z.array(z.object({
-    sku: z.string().min(1),
-    warehouseCode: z.string().min(1),
-    qty: z.number().positive(),
-    unitCost: z.number().nonnegative(),
-  })).min(1),
+  items: z
+    .array(
+      z.object({
+        sku: z.string().min(1),
+        warehouseCode: z.string().min(1),
+        qty: z.number().positive(),
+        unitCost: z.number().nonnegative(),
+      })
+    )
+    .min(1),
 });
 
-// Get authenticated user ID
+// Resolve authenticated user
 async function getUserId(req: NextRequest) {
-  const user = await requireAuth(req);
-  if (user instanceof Response) return user; // Return error response
+  const user = await requireAuth(req, { roles: ["ADMIN", "STAFF"] });
+  if (user instanceof Response) return user;
   return user.id;
 }
 
@@ -27,20 +32,32 @@ export async function POST(req: NextRequest) {
   try {
     const body = Body.parse(await req.json());
     const userId = await getUserId(req);
-    if (userId instanceof Response) return userId; // Return error response
-    if (!userId) return new Response("No admin user", { status: 400 });
+    if (userId instanceof Response) return userId;
+    if (!userId) return new Response("Unauthorized", { status: 401 });
 
-    const supplier = await prisma.supplier.findFirst({ where: { name: body.supplierName } });
+    // Find supplier
+    const supplier = await prisma.supplier.findFirst({
+      where: { name: body.supplierName },
+    });
     if (!supplier) return new Response("Supplier not found", { status: 400 });
 
+    // Transactional insert
     const result = await prisma.$transaction(async (tx) => {
-      const resolved = await Promise.all(body.items.map(async (it) => {
-        const product = await tx.product.findUnique({ where: { sku: it.sku } });
-        if (!product) throw new Error(`PRODUCT_NOT_FOUND:${it.sku}`);
-        const wh = await tx.warehouse.findUnique({ where: { code: it.warehouseCode } });
-        if (!wh) throw new Error(`WAREHOUSE_NOT_FOUND:${it.warehouseCode}`);
-        return { productId: product.id, warehouseId: wh.id, ...it };
-      }));
+      const resolved = await Promise.all(
+        body.items.map(async (it) => {
+          const product = await tx.product.findUnique({
+            where: { sku: it.sku },
+          });
+          if (!product) throw new Error(`PRODUCT_NOT_FOUND:${it.sku}`);
+
+          const wh = await tx.warehouse.findUnique({
+            where: { code: it.warehouseCode },
+          });
+          if (!wh) throw new Error(`WAREHOUSE_NOT_FOUND:${it.warehouseCode}`);
+
+          return { productId: product.id, warehouseId: wh.id, ...it };
+        })
+      );
 
       const total = resolved.reduce((s, i) => s + i.qty * i.unitCost, 0);
 
@@ -53,6 +70,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Loop over resolved items
       for (const it of resolved) {
         await tx.purchaseItem.create({
           data: {
@@ -78,9 +96,21 @@ export async function POST(req: NextRequest) {
         });
 
         await tx.productStock.upsert({
-          where: { productId_warehouseId: { productId: it.productId, warehouseId: it.warehouseId } },
-          create: { productId: it.productId, warehouseId: it.warehouseId, qtyOnHand: new Prisma.Decimal(it.qty) },
-          update: { qtyOnHand: { increment: new Prisma.Decimal(it.qty) }, updatedAt: new Date() },
+          where: {
+            productId_warehouseId: {
+              productId: it.productId,
+              warehouseId: it.warehouseId,
+            },
+          },
+          create: {
+            productId: it.productId,
+            warehouseId: it.warehouseId,
+            qtyOnHand: new Prisma.Decimal(it.qty),
+          },
+          update: {
+            qtyOnHand: { increment: new Prisma.Decimal(it.qty) },
+            updatedAt: new Date(),
+          },
         });
       }
 
@@ -88,12 +118,21 @@ export async function POST(req: NextRequest) {
     });
 
     return Response.json(result, { status: 201 });
-    } catch (e: unknown) {
-    if (e instanceof z.ZodError) return new Response(JSON.stringify(e.flatten()), { status: 400 });
-    if (typeof e === "object" && e !== null && "message" in e && typeof e.message === "string" && e.message.startsWith("PRODUCT_NOT_FOUND"))
-      return new Response(e.message, { status: 400 });
-    if (typeof e === "object" && e !== null && "message" in e && typeof e.message === "string" && e.message.startsWith("WAREHOUSE_NOT_FOUND"))
-      return new Response(e.message, { status: 400 });
+  } catch (e: unknown) {
+    if (e instanceof z.ZodError) {
+      return new Response(JSON.stringify(e.flatten()), { status: 400 });
+    }
+    if (
+      typeof e === "object" &&
+      e !== null &&
+      "message" in e &&
+      typeof e.message === "string"
+    ) {
+      if (e.message.startsWith("PRODUCT_NOT_FOUND"))
+        return new Response(e.message, { status: 400 });
+      if (e.message.startsWith("WAREHOUSE_NOT_FOUND"))
+        return new Response(e.message, { status: 400 });
+    }
     console.error(e);
     return new Response("Server error", { status: 500 });
   }

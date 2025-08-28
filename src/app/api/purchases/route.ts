@@ -1,3 +1,4 @@
+// src/app/api/purchases/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -5,7 +6,6 @@ import { Prisma } from "@prisma/client";
 import { updateAvgOnPurchase } from "@/lib/costing";
 import { requireAuth } from "@/lib/auth";
 
-// --- Zod DTO ---
 const PurchaseItemDTO = z.object({
   productId: z.string().uuid(),
   warehouseId: z.string().uuid(),
@@ -15,25 +15,26 @@ const PurchaseItemDTO = z.object({
 
 const PurchaseDTO = z.object({
   supplierId: z.string().uuid(),
-  docDate: z.string(),             // "2025-08-26"
+  docDate: z.string(),
   invoiceNo: z.string().min(1),
   notes: z.string().optional(),
   items: z.array(PurchaseItemDTO).min(1),
 });
 
-// Get authenticated user ID
+// Allow ADMIN & STAFF
 async function getUserId(req: NextRequest) {
-  const user = await requireAuth(req);
-  if (user instanceof Response) return user; // Return error response
+  const user = await requireAuth(req, { roles: ["ADMIN", "STAFF"] });
+  if (user instanceof Response) return user;
   return user.id;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = PurchaseDTO.parse(await req.json());
-    const userId = await getUserId(req);
-    if (userId instanceof Response) return userId; // Return error response
-    if (!userId) return new Response("No admin user", { status: 400 });
+
+    const uid = await getUserId(req);
+    if (uid instanceof Response) return uid;
+    if (!uid) return new Response("Unauthorized", { status: 401 });
 
     const result = await prisma.$transaction(async (tx) => {
       const total = body.items.reduce((s, i) => s + i.qty * i.unitCost, 0);
@@ -44,7 +45,6 @@ export async function POST(req: NextRequest) {
           docDate: new Date(body.docDate),
           invoiceNo: body.invoiceNo,
           total,
-          // notes: body.notes,  // uncomment if you added notes to model
         },
       });
 
@@ -59,23 +59,26 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Ledger entry
         await tx.stockTransaction.create({
           data: {
             productId: it.productId,
             warehouseId: it.warehouseId,
             type: "PURCHASE",
-            qty: new Prisma.Decimal(it.qty),      // positive
+            qty: new Prisma.Decimal(it.qty),
             unitCost: new Prisma.Decimal(it.unitCost),
             refTable: "Purchase",
             refId: purchase.id,
-            createdById: userId,
+            createdById: uid,
           },
         });
 
-        // Fast stock cache
         await tx.productStock.upsert({
-          where: { productId_warehouseId: { productId: it.productId, warehouseId: it.warehouseId } },
+          where: {
+            productId_warehouseId: {
+              productId: it.productId,
+              warehouseId: it.warehouseId,
+            },
+          },
           create: {
             productId: it.productId,
             warehouseId: it.warehouseId,
@@ -87,15 +90,20 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Update avg cost
-        await updateAvgOnPurchase(tx, it.productId, it.warehouseId, it.qty, it.unitCost);
+        await updateAvgOnPurchase(
+          tx,
+          it.productId,
+          it.warehouseId,
+          it.qty,
+          it.unitCost
+        );
       }
 
       return purchase;
     });
 
     return Response.json(result, { status: 201 });
-  } catch (e: unknown) {
+  } catch (e) {
     if (e instanceof z.ZodError) {
       return new Response(JSON.stringify(e.flatten()), { status: 400 });
     }
@@ -103,4 +111,3 @@ export async function POST(req: NextRequest) {
     return new Response("Server error", { status: 500 });
   }
 }
-
